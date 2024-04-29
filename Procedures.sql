@@ -4,6 +4,7 @@ CREATE TABLE employee_bkp AS
 SELECT * FROM hr.employees;
 SELECT * FROM EMPLOYEE_BKP;
 set serveroutput on;
+
 --EXAMPLE 1 : creating stored procedures to update employee salary
 
 create or replace procedure update_emp_salary is
@@ -134,4 +135,90 @@ begin
 cal_sqr(-2,res);
 dbms_output.put_line(res);
 end;
+/
+
+
+--Procedure Example Transferring amount from SENDER ACCOUNT TO RECEIVER ACCOUNT
+
+---ACCOUNT CREATION----
+CREATE TABLE accounts (
+    account_id     NUMBER,
+    account_number NUMBER,
+    account_holder VARCHAR2(30),
+    balance        NUMBER
+);  
+
+--INSERT DATA INTO ACCOUNT TABLE--
+INSERT INTO ACCOUNTS VALUES (1,101,'JOHN',4000);
+INSERT INTO ACCOUNTS VALUES(2,102,'RAGU',8500);
+
+---SEQUENCE CREATION---
+CREATE SEQUENCE ACCOUNT_SEQUENCE
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 100
+CYCLE
+CACHE 20;
+
+---ACCOUNT TRANSACTION--
+CREATE TABLE TRANSACTIONS (
+    TRANSACTION_ID   NUMBER,
+    ACCOUNT_ID       NUMBER,
+    TRANSACTION_TYPE VARCHAR2(30),
+    AMOUNT           NUMBER,
+    TRANSACTION_DATE DATE
+);
+----TRIGGER CREATION FOR SEQUENCE NUMBER GENERATE FOR TRANSACTION_ID COLUMN--
+CREATE OR REPLACE TRIGGER transactions_trigger
+BEFORE INSERT ON transactions
+FOR EACH ROW
+BEGIN
+    SELECT ACCOUNT_SEQUENCE.NEXTVAL INTO :new.transaction_id FROM dual;
+END;
+/
+SELECT * FROM TRANSACTIONS;
+SELECT * FROM ACCOUNTS;
+
+---USE CASE: PROCEDURE FOR TRANSFERRING AMOUNT FROM ONE ACCOUNT TO ANOTHER ACCOUNT---
+CREATE OR REPLACE PROCEDURE trans_proc (
+    sender_account_id   NUMBER,
+    receiver_account_id NUMBER,
+    amount              NUMBER,
+    msg                 OUT VARCHAR2
+) IS
+    sender_balance_amount NUMBER;
+BEGIN
+    SELECT balance INTO sender_balance_amount
+    FROM accounts WHERE account_id = sender_account_id;
+
+    IF amount <= sender_balance_amount THEN
+        UPDATE accounts SET balance = balance - amount
+        WHERE account_id = sender_account_id;
+
+        UPDATE accounts SET balance = balance + amount
+        WHERE account_id = receiver_account_id;
+
+        INSERT INTO transactions VALUES (account_sequence.NEXTVAL, sender_account_id, 'DEBIT', amount,sysdate);
+
+        INSERT INTO transactions VALUES (account_sequence.NEXTVAL, receiver_account_id, 'CREDIT', amount,sysdate);
+
+        msg := 'TRANSACTION COMPLETED';
+    ELSE
+        msg := 'INSUFFICIENT BALANCE';
+    END IF;
+
+exception
+    WHEN OTHERS THEN
+        msg := sqlerrm;
+END;
+/
+
+
+DECLARE
+    message VARCHAR2(100);
+BEGIN
+    trans_proc(2, 1, 500, message);
+    dbms_output.put_line(message);
+END;
 /
