@@ -39,9 +39,50 @@ insert into open_source values('Firefox');
 insert into open_source values('Gimp');
 insert into open_source values('Blender');
 insert into open_source values('PostgreSQL');
+insert into open_source values('openvpn');
 select * from open_source;
 
 update open_source set top_projects = 'VLC Media Player' 
 where top_projects = 'VLC media player';
+
+update open_source set top_projects = 'VLC Media Player' 
+where top_projects = 'VLC media player';
+--Table Auditing
+
+CREATE TABLE audit_gnu (
+    new_name   VARCHAR2(30),
+    old_name   VARCHAR2(30),
+    user_name  VARCHAR2(30),
+    entry_date VARCHAR2(30),
+    operation  VARCHAR2(30)
+);
+
+select * from audit_gnu;
+
+create or replace trigger gnu_audit_trigger
+before INSERT OR UPDATE OR DELETE ON open_source
+for each row
+enable
+declare
+    v_user varchar2(30);
+    v_date varchar2(30);
+begin
+    select user, to_char(sysdate,'DD/MM/YYYY HH24:MI:SS')
+    INTO v_user,v_date from dual;
+    
+    IF inserting THEN
+        insert into audit_gnu(new_name, old_name, user_name, entry_date, operation)
+        values(:NEW.top_projects, NULL, v_user, v_date, 'Insert');
+        
+    ELSIF deleting THEN
+        insert into audit_gnu(new_name, old_name, user_name, entry_date, operation)
+        values(NULL, :OLD.top_projects, v_user, v_date, 'Delete');
+        
+    ELSIF updating THEN
+        insert into audit_gnu(new_name, old_name, user_name, entry_date, operation)
+        values(:NEW.top_projects, :OLD.top_projects, v_user, v_date, 'Update');
+    end if;
+end;
+/
 
 
