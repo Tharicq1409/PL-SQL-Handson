@@ -40,13 +40,22 @@ insert into open_source values('Gimp');
 insert into open_source values('Blender');
 insert into open_source values('PostgreSQL');
 insert into open_source values('openvpn');
+insert into open_source values('Python');
+
 select * from open_source;
 
 update open_source set top_projects = 'VLC Media Player' 
 where top_projects = 'VLC media player';
 
-update open_source set top_projects = 'VLC Media Player' 
-where top_projects = 'VLC media player';
+update open_source set top_projects = 'OpenVPN' 
+where top_projects = 'openvpn';
+
+select * from audit_gnu;
+
+update open_source set top_projects = 'Python Interpreter' 
+where top_projects = 'Python';
+
+delete from open_source where top_projects = 'Python Interpreter';
 --Table Auditing
 
 CREATE TABLE audit_gnu (
@@ -57,7 +66,7 @@ CREATE TABLE audit_gnu (
     operation  VARCHAR2(30)
 );
 
-select * from audit_gnu;
+
 
 create or replace trigger gnu_audit_trigger
 before INSERT OR UPDATE OR DELETE ON open_source
@@ -84,5 +93,33 @@ begin
     end if;
 end;
 /
+
+
+--Table backup
+
+CREATE TABLE open_source_bkp
+AS SELECT * FROM open_source
+WHERE 1 = 2;
+
+select * from open_source_bkp;
+
+
+create or replace trigger gnu_bkp_trigger
+before INSERT OR UPDATE OR DELETE ON open_source
+for each row
+enable
+
+begin
+    if inserting then
+        insert into open_source_bkp values(:NEW.top_projects);
+    elsif deleting then
+        delete from open_source_bkp where top_projects = :OLD.top_projects;
+    elsif updating then
+        update open_source_bkp set top_projects = :NEW.top_projects where top_projects = :OLD.top_projects;
+    end if;
+end;
+/
+
+
 
 
